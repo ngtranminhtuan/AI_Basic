@@ -1,10 +1,6 @@
-import math
+from math import log2
 import numpy as np
 import matplotlib.pyplot as plt
-
-from sklearn.model_selection import train_test_split
-from sklearn import linear_model
-from sklearn.metrics import accuracy_score
 
 X0 = np.array([[-0.00000000e+00, 0.00000000e+00], [1.02370162e-03, 1.00490019e-02], [4.46886653e-04, 2.01970768e-02],
                [1.47407793e-02, 2.64760849e-02], [4.89297702e-03, 4.01066735e-02],
@@ -50,6 +46,7 @@ X0 = np.array([[-0.00000000e+00, 0.00000000e+00], [1.02370162e-03, 1.00490019e-0
                [-5.50402765e-01, -7.86054198e-01], [-6.12833322e-01, -7.51496862e-01],
                [-5.24221081e-01, -8.27765872e-01], [-4.28940594e-01, -8.92137869e-01],
                [-6.64081054e-01, -7.47660588e-01]])
+
 X1 = np.array(
     [[-0.00000000e+00, -0.00000000e+00], [-8.90404749e-03, -4.76952234e-03], [-1.73009287e-02, -1.04306993e-02],
      [-2.11171063e-02, -2.17334183e-02], [-3.13247799e-02, -2.55194953e-02],
@@ -91,6 +88,7 @@ X1 = np.array(
      [9.39374941e-01, -5.97437662e-03], [9.46227513e-01, 7.87029352e-02],
      [9.41703213e-01, 1.84443664e-01], [9.69634480e-01, 1.10085579e-02], [9.64491863e-01, -1.72509500e-01],
      [9.08099555e-01, -3.94024376e-01], [9.83692635e-01, 1.79857721e-01]])
+
 X2 = np.array([[0.00000000e+00, -0.00000000e+00], [1.00796294e-02, 6.56867843e-04], [1.99627786e-02, -3.09985355e-03],
                [2.97027062e-02, -6.00190720e-03], [3.89803692e-02, -1.06309594e-02],
                [4.60802930e-02, -2.06728500e-02], [4.68979393e-02, -3.83885123e-02], [6.18421657e-02, -3.42788038e-02],
@@ -148,9 +146,17 @@ y = np.concatenate(np.array([[0] * len(X0), [1] * len(X1), [2] * len(X2)]), axis
 
 def softmax(V):
     # TODO: implement softmax function
-    e_x = np.exp(V - np.max(V))
-    return e_x / e_x.sum(axis=0)
+    # M1
+    # V_new = []
+    # for a in V:
+    #     sm_a = softmax_array(a)
+    #     V_new.append(sm_a)
+    # return V_new
 
+    # OR M2
+    a = np.exp(V)
+    b = np.sum(a, axis=1).reshape(V.shape[0], 1)
+    return a / b
 
 # V: size m*n for any interger m, n
 def reLU(V):
@@ -287,6 +293,39 @@ def train(d0, d1, d2, X, y, eta, epochs):
     return W1_dot, W2_dot
 
 
+def showDiagram(X, y, W1_dot, W2_dot, activationFunction):
+    # X0 = X[predicted_class == 0, :]
+    # X1 = X[predicted_class == 1, :]
+    # X2 = X[predicted_class == 2, :]
+    # plt.scatter(X0[:, 0], X0[:, 1], s=10, c='red')
+    # plt.scatter(X1[:, 0], X1[:, 1], s=10, c='blue')
+    # plt.scatter(X2[:, 0], X2[:, 1], s=10, c='green')
+
+    xm = np.arange(-1.5, 1.5, 0.025)
+    ym = np.arange(-1.5, 1.5, 0.025)
+    xx, yy = np.meshgrid(xm, ym)
+
+    xx1 = xx.ravel().reshape(1, xx.size)
+    yy1 = yy.ravel().reshape(1, yy.size)
+
+    X0 = np.vstack((xx1, yy1)).T
+
+    X0_dot = generate_X_dot(X0)
+
+    Z = predict_class(X0_dot, W1_dot, W2_dot, activationFunction)
+
+    Z = Z.reshape(xx.shape)
+
+    CS = plt.contourf(xx, yy, Z, 200, cmap='jet', alpha=.1)
+
+    plt.scatter(X[:, 0], X[:, 1], c=y, s=10)
+
+    plt.xlim(-1.5, 1.5)
+    plt.ylim(-1.5, 1.5)
+
+    plt.show()
+
+
 # number of features of a single sample x
 d0 = 2
 
@@ -299,7 +338,7 @@ d2 = C = 3
 # learning rate
 eta = 1
 
-epochs = 10000
+epochs = 40000
 
 W1_dot, W2_dot = train(d0, d1, d2, X, y, eta, epochs)
 
@@ -309,5 +348,5 @@ predicted_class = predict_class(X_dot, W1_dot, W2_dot, softmax)
 acc = (100 * np.mean(predicted_class == y))
 print('training accuracy: %.2f %%' % acc)
 
-##################################
-
+################ Visualize ##################
+showDiagram(X, y, W1_dot, W2_dot, softmax)
