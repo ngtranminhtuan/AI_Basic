@@ -2,6 +2,10 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
+from sklearn.model_selection import train_test_split
+from sklearn import linear_model
+from sklearn.metrics import accuracy_score
+
 X0 = np.array([[-0.00000000e+00, 0.00000000e+00], [1.02370162e-03, 1.00490019e-02], [4.46886653e-04, 2.01970768e-02],
                [1.47407793e-02, 2.64760849e-02], [4.89297702e-03, 4.01066735e-02],
                [2.24532697e-02, 4.52394828e-02], [-1.29046709e-02, 5.92162482e-02], [1.40119290e-02, 6.93048028e-02],
@@ -138,23 +142,10 @@ X = np.concatenate((X0, X1, X2), axis=0)
 y = np.concatenate(np.array([[0] * len(X0), [1] * len(X1), [2] * len(X2)]), axis=0).T
 
 
-#####################################################################################
-
-def calculate_cross_entropy(y, y_hat):
-    return -np.sum(y * np.log(y_hat))
-
-
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
-
-
-def sigmoid_der(x):
-    return sigmoid(x) * (1 - sigmoid(x))
-
-
 # V: size n*c
 #    n is the number of one-hot coding labels corresponding to provided sample X
 #    c is the number of total label
+
 def softmax(V):
     # TODO: implement softmax function
     e_x = np.exp(V - np.max(V))
@@ -201,7 +192,10 @@ def generate_X_dot(X):
 #        f is the length of onehot coding
 # Y_hat: matrix size n*f, as same as Y
 
-# H(y,p)=−∑iyilog(pi)
+def calculate_cross_entropy(y, y_hat):
+    return -np.sum(y * np.log(y_hat))
+
+
 def cost(Y, Y_hat):
     n = Y.shape[0]
 
@@ -213,6 +207,14 @@ def cost(Y, Y_hat):
     return result
 
 
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+
+def sigmoid_der(x):
+    return sigmoid(x) * (1 - sigmoid(x))
+
+
 def feed_forward(X_dot, W1_dot, W2_dot, activationFunction):
     # TODO:
     # Calculate Z1
@@ -221,9 +223,91 @@ def feed_forward(X_dot, W1_dot, W2_dot, activationFunction):
     # Calculate Z2
     # Calculate Y hat
     # return Z1, A1_dot, Z2, Y_hat
-    pass
+    Z1 = np.dot(X_dot, W1_dot)
+    A1 = reLU(Z1)
+    A1_dot = generate_X_dot(A1)
+
+    Z2 = np.dot(A1_dot, W2_dot)
+    Y_hat = activationFunction(Z2)
+
+    return Z1, A1_dot, Z2, Y_hat
+
+
+def back_propagation(X_dot, Y, Z1, A1_dot, Z2, Y_hat, W1_dot, W2_dot):
+    # TODO: backpropagation
+    # Calculate E2
+    # calculate dW2_dot
+    # calculate E1
+    # calculate dW1_dot
+
+    N = X_dot.shape[0]
+    E2 = (Y_hat - Y) / N
+    dW2_dot = np.dot(A1_dot.T, E2)
+
+    W2 = np.delete(W2_dot, 0, axis=0)
+
+    E1 = np.dot(E2, W2.T) * reLU_grad(Z1)
+
+    dW1_dot = np.dot(X_dot.T, E1)
+
+    return dW1_dot, dW2_dot
+
 
 def predict_class(X_dot, W1_dot, W2_dot, activationFunction):
-  Z1, A1_dot, Z2, Y_hat = feed_forward(X_dot, W1_dot, W2_dot, activationFunction)
-  return np.argmax(Y_hat, axis=1)
+    Z1, A1_dot, Z2, Y_hat = feed_forward(X_dot, W1_dot, W2_dot, activationFunction)
+    return np.argmax(Y_hat, axis=1)
+
+
+def train(d0, d1, d2, X, y, eta, epochs):
+    X_dot = generate_X_dot(X)
+
+    # Convert provided array of label y into OneHot coding label Y
+    Y = generate_onehot_coding(y, C=3)
+
+    # initialize parameters randomly
+    W1_dot = 0.1 * np.random.randn(d0 + 1, d1)
+    W2_dot = 0.1 * np.random.randn(d1 + 1, d2)
+
+    for i in range(epochs):
+        # TODO:  Feedforward
+        Z1, A1_dot, Z2, Y_hat = feed_forward(X_dot, W1_dot, W2_dot, sigmoid)
+
+        # print loss after each 1000 iterations
+        if i % 1000 == 0:
+            loss = cost(Y, Y_hat)
+            print("iter %d, loss: %f" % (i, loss))
+
+        # TODO: backpropagation
+        dW1_dot, dW2_dot = back_propagation(X_dot, Y, Z1, A1_dot, Z2, Y_hat, W1_dot, W2_dot)
+
+        # TODO: Gradient Descent update
+        W1_dot += -eta * dW1_dot
+        W2_dot += -eta * dW2_dot
+
+    return W1_dot, W2_dot
+
+
+# number of features of a single sample x
+d0 = 2
+
+# number of neuron of hidden layer (without bias)
+d1 = h = 50
+
+# number of neuron of output layer
+d2 = C = 3
+
+# learning rate
+eta = 1
+
+epochs = 10000
+
+W1_dot, W2_dot = train(d0, d1, d2, X, y, eta, epochs)
+
+# Predict and evaluate based on training data X
+X_dot = generate_X_dot(X)
+predicted_class = predict_class(X_dot, W1_dot, W2_dot, softmax)
+acc = (100 * np.mean(predicted_class == y))
+print('training accuracy: %.2f %%' % acc)
+
+##################################
 
