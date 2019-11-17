@@ -32,3 +32,19 @@ y_pred = reg.predict(X_test)
         Draw points (X_test, y_test) (color: red)
         Draw the line based on coef and intercept (color: green)
 """
+
+def draw_multiple_points(x_number_list, y_number_list, color, pointWeight):
+    plt.scatter(x_number_list, y_number_list, s=pointWeight, c=color)
+
+draw_multiple_points(X_train, y_train, 'red', 10)
+
+plt.plot(X_test, y_pred, linewidth=3, color='blue')
+
+# Y_line = [coef*-6 + intercept, coef*10 + intercept]
+# X_line = [-6, 10]
+#
+# plt.plot(X_line, Y_line, linewidth=3, color='blue')
+
+
+plt.show()
+	
